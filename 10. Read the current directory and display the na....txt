@@ -1,0 +1,272 @@
+﻿Task 10: Read Current Directory and Display Files
+
+
+C
+
+
+
+
+#include <stdio.h>
+#include <dirent.h>
+
+int main() {
+   DIR *dir = opendir(".");
+   if (dir == NULL) {
+       perror("opendir");
+       return 1;
+   }
+
+   int count = 0;
+   struct dirent *entry;
+   while ((entry = readdir(dir)) != NULL) {
+       if (entry->d_type == DT_REG) {
+           printf("%s\n", entry->d_name);
+           count++;
+       }
+   }
+
+   closedir(dir);
+   printf("Number of files: %d\n", count);
+   return 0;
+}
+
+Task 11: Simulate ls -l | wc -l
+
+
+C
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+   int pipefd[2];
+   pid_t pid;
+
+   if (pipe(pipefd) == -1) {
+       perror("pipe");
+       exit(EXIT_FAILURE);
+   }
+
+   pid = fork();
+   if (pid < 0) {
+       perror("fork");
+       exit(EXIT_FAILURE);
+   } else if (pid == 0) { // Child process
+       close(pipefd[0]);
+       dup2(pipefd[1], STDOUT_FILENO);
+       close(pipefd[1]);
+       execlp("ls", "ls", "-l", NULL);
+       perror("execlp");
+       exit(EXIT_FAILURE);
+   } else { // Parent process
+       close(pipefd[1]);
+       dup2(pipefd[0], STDIN_FILENO);
+       close(pipefd[0]);
+       execlp("wc", "wc", "-l", NULL);
+       perror("execlp");
+       exit(EXIT_FAILURE);
+   }
+
+   return 0;
+}
+
+Task 12: Display Files Created in a Specific Month
+
+
+C
+
+
+
+
+#include <stdio.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <time.h>
+
+int main() {
+   DIR *dir = opendir(".");
+   if (dir == NULL) {
+       perror("opendir");
+       return 1;
+   }
+
+   struct dirent *entry;
+   while ((entry = readdir(dir)) != NULL) {
+       struct stat st;
+       if (stat(entry->d_name, &st) == 0) {
+           struct tm *tm = localtime(&st.st_mtime);
+           if (tm->tm_mon + 1 == /* desired month */) {
+               printf("%s\n", entry->d_name);
+           }
+       }
+   }
+
+   closedir(dir);
+   return 0;
+}
+
+Task 13: Display Files Larger Than a Given Size
+
+
+C
+
+
+
+
+#include <stdio.h>
+#include <dirent.h>
+#include <sys/stat.h>
+
+int main() {
+   int n;
+   printf("Enter the minimum file size in bytes: ");
+   scanf("%d", &n);
+
+   DIR *dir = opendir(".");
+   if (dir == NULL) {
+       perror("opendir");
+       return 1;
+   }
+
+   struct dirent *entry;
+   while ((entry = readdir(dir)) != NULL) {
+       struct stat st;
+       if (stat(entry->d_name, &st) == 0 && st.st_size > n) {
+           printf("%s\n", entry->d_name);
+       }
+   }
+
+   closedir(dir);
+   return 0;
+}
+
+Task 14: Redirect ls -l Output to a File
+
+
+C
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+   pid_t pid = fork();
+   if (pid < 0) {
+       perror("fork");
+       exit(EXIT_FAILURE);
+   } else if (pid == 0) { // Child process
+       freopen("output.txt", "w", stdout);
+       execlp("ls", "ls", "-l", NULL);
+       perror("execlp");
+       exit(EXIT_FAILURE);
+   } else { // Parent process
+       wait(NULL);
+   }
+
+   return 0;
+}
+
+Task 15: Display File Information Like ls -l
+
+
+C
+
+
+
+
+#include <stdio.h>
+#include <sys/stat.h>
+#include <time.h>
+
+int main(int argc, char *argv[]) {
+   if (argc != 2) {
+       printf("Usage: %s <filename>\n", argv[0]);
+       return 1;
+   }
+
+   struct stat st;
+   if (stat(argv[1], &st) == 0) {
+       char time_str[26];
+       strftime(time_str, 26, "%b %d %H:%M", localtime(&st.st_mtime));
+       printf("%s %ld %s %s\n", (st.st_mode & S_IFDIR) ? "d" : "-",
+              st.st_size, time_str, argv[1]);
+   } else {
+       perror("stat");
+       return 1;
+   }
+
+   return 0;
+}
+
+Task 16: Custom Shell with count Commands
+
+
+C
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <string.h>
+
+int main() {
+   char command[100];
+   while (1) {
+       printf("NewShell$ ");
+       fgets(command, 100, stdin);
+       command[strcspn(command, "\n")] = '\0';
+
+       if (strcmp(command, "exit") == 0) {
+           break;
+       } else if (strncmp(command, "count c", 8) == 0) {
+           // Implement count c (character count) here
+       } else if (strncmp(command, "count w", 8) == 0) {
+           // Implement count w (word count) here
+       } else if (strncmp(command, "count l", 8) == 0) {
+           // Implement count l (line count) here
+       } else {
+           pid_t pid = fork();
+           if (pid < 0) {
+               perror("fork");
+               exit(EXIT_FAILURE);
+           } else if (pid == 0) { // Child process
+               execlp("/bin/sh", "/bin/sh", "-c", command, NULL);
+               perror("execlp");
+               exit(EXIT_FAILURE);
+           } else { // Parent process
+               wait(NULL);
+           }
+       }
+   }
+
+   return 0;
+}
+
+Task 17: Custom Shell with list Commands
+
+
+C
+
+
+
+
+#include <stdio.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <time.h>
+
+// ... (similar to Task 12 and Task 13, but within the shell loop)
+
+Note: To implement the count c, count w, and count l commands in Task 16, you can use standard library functions like wc or read the input character by character and count accordingly. For the list f, list n, and list i commands in Task 17, you can use the dirent and stat structures to filter and display files based on various criteria.
