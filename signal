@@ -1,0 +1,29 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+
+void handle_SIGTSTP(int sig) {
+    printf("Process: Received SIGTSTP signal. Suspending...\n");
+    pause(); 
+}
+void handle_SIGCONT(int sig) 
+{
+    printf("Process: Received SIGCONT signal. Resuming...\n");
+}
+
+int main() {
+   
+    signal(SIGTSTP, handle_SIGTSTP);
+    signal(SIGCONT, handle_SIGCONT);
+
+    printf("Process ID: %d\n", getpid());
+    printf("Use SIGTSTP (Ctrl+Z) to suspend and SIGCONT to resume the process.\n");
+
+    while (1) {
+        printf("Process: Working...\n");
+        sleep(2); 
+    }
+
+    return 0; 
+}
